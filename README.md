@@ -7,7 +7,7 @@ Boot.Dev project (course #8 Back-End Engineer)
 
 To set the working directory, change the working_dir variable in ./functions/call_function.py
 Requires Python to run
-Requires GenAI[https://aistudio.google.com/prompts/new_chat] API Key to be set in ./.env with GEMENI_API_KEY=str where str is your API_KEY
+Requires [GenAI](https://aistudio.google.com/prompts/new_chat) API Key to be set in ./.env with GEMENI_API_KEY=str where str is your API_KEY
 "Python3 main.py 'args'" where args is a string for the LLM
 	
 ## Config
