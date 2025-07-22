@@ -4,6 +4,7 @@ import sys
 from google import genai
 from google.genai import types
 from functions.config import SYSTEM_PROMPT
+from functions.config import MAX_AI_LOOPS
 from functions.get_files_info import schema_get_files_info
 from functions.get_file_content import schema_get_file_content
 from functions.run_python_files import schema_run_python_file
@@ -41,24 +42,60 @@ def main():
     if len(sys.argv) < 2:
         print("Error: requires one argument: The string query for the AI")
         sys.exit(1)
+    
+    verbose_toggle = check_verbosity()
+    genai_model = "gemini-2.0-flash-001"
+    genai_prompt = str(sys.argv[1])
+    messages = [types.Content(role="user", parts=[types.Part(text=genai_prompt)])]
+    current_ai_loops = 0    
+    
+    #content_response = client.models.generate_content(model = genai_model,
+    #                                                      contents=messages,
+    #                                                      config = types.GenerateContentConfig(tools = [available_functions], system_instruction=SYSTEM_PROMPT))
+
+    while current_ai_loops<MAX_AI_LOOPS:
+        try:
+            content_response = client.models.generate_content(model = genai_model,
+                                                          contents=messages,
+                                                          config = types.GenerateContentConfig(tools = [available_functions], system_instruction=SYSTEM_PROMPT))
+        except Exception as e:
+            print(f"Issue creating new content_response: {e}")    
+            break
+
+        if not content_response.function_calls:
+            if content_response.text:
+                break 
+
+        try:
+            if content_response.candidates:
+                for candidate in content_response.candidates:
+                    messages.append(candidate.content)
+        except Exception as e:
+            print(f"Issue with checking candidates: {e}")
+            break
+
+        try:
+            if content_response.function_calls:
+                for function_call_part in content_response.function_calls:
+                    response = call_function(function_call_part, verbose_toggle)
+                    if not response.parts[0].function_response.response:
+                        raise Exception("No function response")
+                    elif verbose_toggle:
+                        print(f"-> {response.parts[0].function_response.response}")
+                    #appends the response to the function call (type=types.Content)
+                    messages.append(response)
+        except Exception as e:
+            print(f"issue with running fucntions: {e}")
+            break
+
+        current_ai_loops+=1
+
+
+    
+    if content_response.text:
+        print(f'response: {content_response.text}, exited after {current_ai_loops} loops')
     else:
-        verbose_toggle = check_verbosity()
-        genai_model = "gemini-2.0-flash-001"
-        genai_prompt = str(sys.argv[1])
-        messages = [types.Content(role="user", parts=[types.Part(text=genai_prompt)])]
-        content_response = client.models.generate_content(model = genai_model, 
-                                                          contents = messages,
-                                                          config = types.GenerateContentConfig(tools =[available_functions],system_instruction = SYSTEM_PROMPT))
-    if content_response.function_calls:
-        for function_call_part in content_response.function_calls:
-            response = call_function(function_call_part, verbose_toggle)
-            if not response.parts[0].function_response.response:
-                raise Exception("No function response")
-            elif verbose_toggle:
-                print(f"-> {response.parts[0].function_response.response}")
-           
-    else:
-         print(content_response.text)
+        print(f'Maximum number of tries ({MAX_AI_LOOPS}) reached with no conclusive response')
         
     if verbose_toggle:
         prompt_tokens = content_response.usage_metadata.prompt_token_count

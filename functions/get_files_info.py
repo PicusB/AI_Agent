@@ -4,13 +4,13 @@ from google.genai import types
 
 
 def get_files_info(working_directory, directory = "."):
-    print(f"working directory: {working_directory}, directory:{directory}")
+    #print(f"working directory: {working_directory}, directory:{directory}")
     try:
         new_path = os.path.join(working_directory, directory)
         absolute_path = os.path.abspath(new_path)
     except:
         return f"Error: Unable to create absolute path to directory"
-    print(f"Listing contents of {absolute_path}:")
+    #print(f"Listing contents of {absolute_path}:")
     if not absolute_path.startswith(os.path.abspath(working_directory)):
         return f'Error: Cannot list "{directory}" as it is outside the permitted working directory'
     if not os.path.isdir(absolute_path):
@@ -29,7 +29,7 @@ def get_files_info(working_directory, directory = "."):
             return f"Error: Issue creating content list output"
         return_list.append(f"- {item}: file_size={size}, is_dir={not is_file}")
     final_output = "\n".join(return_list)
-    print(final_output)
+    #print(final_output)
     return final_output
 
 schema_get_files_info = types.FunctionDeclaration(
@@ -46,10 +46,3 @@ schema_get_files_info = types.FunctionDeclaration(
     ),
 )
 
-if __name__ == "__main__":
-    import sys
-    import json
-    # Parse arguments (assuming correct format, adjust as needed)
-    args = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
-    result = get_files_info(**args)
-    print(result)
